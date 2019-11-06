@@ -11,26 +11,24 @@ def fliplr(img):
 
 
 def extract_features(model, dataloader):
-    model.eval()
-    with torch.no_grad():
-        model = model.cuda()
-        features = torch.FloatTensor()
-        for data in dataloader:
-            inputs, labels = data
-            n, _, _, _ = inputs.size()
-            outputs_fuse = torch.zeros(n, 512, dtype=torch.float)
-            for i in range(2):
-                if i == 1:
-                    inputs = fliplr(inputs)
-                inputs = inputs.cuda()
-                outputs = model(inputs)
-                outputs_fuse += outputs.cpu()
-                inputs = inputs.cpu()
+    model = model.cuda()
+    features = torch.FloatTensor()
+    for data in dataloader:
+        inputs, labels = data
+        n, _, _, _ = inputs.size()
+        outputs_fuse = torch.zeros(n, 512, dtype=torch.float)
+        for i in range(2):
+            if i == 1:
+                inputs = fliplr(inputs)
+            inputs = inputs.cuda()
+            outputs = model(inputs)
+            outputs_fuse += outputs.cpu()
+            inputs = inputs.cpu()
 
-            # l2 norm
-            outputs_fuse_norm = torch.norm(outputs_fuse, p=2, dim=1, keepdim=True)
-            outputs_fuse = outputs_fuse / outputs_fuse_norm
-            features = torch.cat([features, outputs_fuse], dim=0)
+        # l2 norm
+        outputs_fuse_norm = torch.norm(outputs_fuse, p=2, dim=1, keepdim=True)
+        outputs_fuse = outputs_fuse / outputs_fuse_norm
+        features = torch.cat([features, outputs_fuse], dim=0)
     return features.numpy()
 
 

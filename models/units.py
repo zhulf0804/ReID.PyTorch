@@ -27,7 +27,7 @@ def weights_init_classifier(m):
 
 
 class Classifier(nn.Module):
-    def __init__(self, in_dims, out_dims, dropout, relu=True, bn=True, num_bottleneck=512, linear=True):
+    def __init__(self, in_dims, out_dims, dropout, relu=False, bn=True, num_bottleneck=512, linear=True):
         super(Classifier, self).__init__()
         blocks = []
         if linear:
