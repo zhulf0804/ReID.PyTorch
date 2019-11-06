@@ -5,6 +5,7 @@ import torch
 from tensorboardX import SummaryWriter
 from datasets import get_train_datasets
 from models.resnet import resnet50
+from models.densenet import densenet121
 from models.units import build_optimizer, get_scheduler, get_loss
 
 
@@ -19,28 +20,34 @@ parser.add_argument('--log_interval', type=int, default=1, help='Print iterval')
 parser.add_argument('--log_dir', type=str, default='logs', help='Train/val loss and accuracy logs')
 parser.add_argument('--checkpoint_interval', type=int, default=20, help='Checkpoint saved interval')
 parser.add_argument('--checkpoint_dir', type=str, default='checkpoints', help='Directory to save checkpoints')
+parser.add_argument('--model', type=str, default='resnet50', help='Directory to save checkpoints')
+parser.add_argument('--train_all', action='store_true', help="Use train and val data to train")
 args = parser.parse_args()
 
 
 train_image_datasets, train_dataloaders, dataset_sizes, class_names = get_train_datasets(args.data_dir, args.batch_size)
 num_classes = len(class_names)
-model = resnet50(num_classes=num_classes)
+if args.model == 'resnet50':
+    model = resnet50(num_classes=num_classes)
+elif args.model == 'densenet121':
+    model = densenet121(num_classes=num_classes)
 criterion = get_loss()
 optimizer = build_optimizer(model, args.init_lr, args.weight_decay)
 scheduler = get_scheduler(optimizer)
 
-
 use_gpu = torch.cuda.is_available()
-
 
 def train(model):
     if not os.path.exists(args.log_dir):
         os.makedirs(args.log_dir)
     writer = SummaryWriter(args.log_dir)
+    phase = 'train'
+    if args.train_all:
+        phase = 'train_all'
     for epoch in range(args.epoches + 1):
         starttime = datetime.datetime.now()
         train_loss, train_corrects = 0.0, 0.0
-        for data in train_dataloaders['train']:
+        for data in train_dataloaders[phase]:
             inputs, labels = data
             if use_gpu:
                 inputs, labels = inputs.cuda(), labels.cuda()
@@ -55,8 +62,8 @@ def train(model):
             correct = float(torch.sum(pred == labels))
             train_corrects += correct
         scheduler.step()
-        avg_train_loss = train_loss / dataset_sizes['train']
-        avg_train_ac = train_corrects / dataset_sizes['train']
+        avg_train_loss = train_loss / dataset_sizes[phase]
+        avg_train_ac = train_corrects / dataset_sizes[phase]
 
         model.eval()
         val_loss, val_corrects = 0.0, 0.0
@@ -64,7 +71,8 @@ def train(model):
             inputs, labels = data
             if use_gpu:
                 inputs, labels = inputs.cuda(), labels.cuda()
-            outputs = model(inputs)
+            with torch.no_grad():
+                outputs = model(inputs)
             loss = criterion(outputs, labels)
             val_loss += loss.item() * args.batch_size
             pred = torch.argmax(outputs, dim=1)
@@ -93,3 +101,8 @@ def train(model):
 
 if __name__ == '__main__':
     train(model)
+
+# nohup python -u train.py --data_dir /root/data/Market/pytorch  --model resnet50 &
+# nohup python -u train.py --data_dir /root/data/Market/pytorch --model densenet121 &
+# nohup python -u train.py --data_dir /root/data/Market/pytorch --train_all --model resnet50 &
+# nohup python -u train.py --data_dir /root/data/Market/pytorch --train_all --model densenet121 &
