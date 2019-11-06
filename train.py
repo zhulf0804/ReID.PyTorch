@@ -1,6 +1,8 @@
 import argparse
 import datetime
+import os
 import torch
+from tensorboardX import SummaryWriter
 from datasets import get_train_datasets
 from models.resnet import resnet50
 from models.units import build_optimizer, get_scheduler, get_loss
@@ -14,6 +16,9 @@ parser.add_argument('--init_lr', type=float, default=0.05, help='Initial learnin
 parser.add_argument('--dropout', type=float, default=0.5, help='Dropout rate (1 - keep  probability)')
 parser.add_argument('--weight_decay', type=float, default=5e-4, help='Weight for l2 loss on parameters')
 parser.add_argument('--log_interval', type=int, default=1, help='Print iterval')
+parser.add_argument('--log_dir', type=str, default='logs', help='Train/val loss and accuracy logs')
+parser.add_argument('--checkpoint_interval', type=int, default=20, help='Checkpoint saved interval')
+parser.add_argument('--checkpoint_dir', type=str, default='checkpoints', help='Directory to save checkpoints')
 args = parser.parse_args()
 
 
@@ -29,6 +34,9 @@ use_gpu = torch.cuda.is_available()
 
 
 def train(model):
+    if not os.path.exists(args.log_dir):
+        os.makedirs(args.log_dir)
+    writer = SummaryWriter(args.log_dir)
     for epoch in range(args.epoches + 1):
         starttime = datetime.datetime.now()
         train_loss, train_corrects = 0.0, 0.0
@@ -69,12 +77,18 @@ def train(model):
         endtime = datetime.datetime.now()
         total_time = (endtime - starttime).seconds
 
+        writer.add_scalars('loss', {'train_loss': avg_train_loss, 'val_loss': avg_val_loss}, epoch)
+        writer.add_scalars('accuracy', {'train_ac': avg_train_ac, 'val_ac': avg_val_ac}, epoch)
         if epoch % args.log_interval == 0:
             print("="*20, "Epoch {} / {}".format(epoch, args.epoches), "="*20)
             print("train loss {:.2f}, train ac {:.2f}".format(avg_train_loss, avg_train_ac))
             print("val loss {:.2f}, val ac {:.2f}".format(avg_val_loss, avg_val_ac))
             print("Training time is {:.2f} s".format(total_time))
             print("\n")
+        if not os.path.exists(args.checkpoint_dir):
+            os.makedirs(args.checkpoint_dir)
+        if epoch % args.checkpoint_interval == 0:
+            torch.save(model.state_dict(), os.path.join(args.checkpoint_dir, "resnet50_{}.pth".format(epoch)))
 
 
 if __name__ == '__main__':

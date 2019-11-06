@@ -20,7 +20,9 @@ transform_val_list = [
 data_transforms = {
     'train': transforms.Compose(transform_train_list),
     'val': transforms.Compose(transform_val_list),
-    'train_all': transforms.Compose(transform_train_list)
+    'train_all': transforms.Compose(transform_train_list),
+    'gallery': transforms.Compose(transform_val_list),
+    'query': transforms.Compose(transform_val_list)
 }
 
 
@@ -31,6 +33,15 @@ def get_train_datasets(data_dir, batch_size):
     dataset_sizes = {x: len(train_image_datasets[x]) for x in ['train', 'val', 'train_all']}
     class_names = train_image_datasets['train'].classes
     return train_image_datasets, train_dataloaders, dataset_sizes, class_names
+
+
+def get_test_datasets(data_dir, batch_size):
+    test_image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x), data_transforms[x]) for x in ['query', 'gallery']}
+    test_dataloaders = {x: torch.utils.data.DataLoader(test_image_datasets[x], batch_size=batch_size,
+                                             shuffle=False, num_workers=8) for x in ['query', 'gallery']}
+    dataset_sizes = {x: len(test_image_datasets[x]) for x in ['query', 'gallery']}
+    class_names = test_image_datasets['query'].classes
+    return test_image_datasets, test_dataloaders, dataset_sizes, class_names
 
 
 if __name__ == '__main__':
