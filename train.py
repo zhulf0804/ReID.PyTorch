@@ -18,9 +18,9 @@ parser.add_argument('--dropout', type=float, default=0.5, help='Dropout rate (1 
 parser.add_argument('--weight_decay', type=float, default=5e-4, help='Weight for l2 loss on parameters')
 parser.add_argument('--log_interval', type=int, default=1, help='Print iterval')
 parser.add_argument('--log_dir', type=str, default='logs', help='Train/val loss and accuracy logs')
-parser.add_argument('--checkpoint_interval', type=int, default=20, help='Checkpoint saved interval')
+parser.add_argument('--checkpoint_interval', type=int, default=10, help='Checkpoint saved interval')
 parser.add_argument('--checkpoint_dir', type=str, default='checkpoints', help='Directory to save checkpoints')
-parser.add_argument('--model', type=str, default='resnet50', help='Directory to save checkpoints')
+parser.add_argument('--model', type=str, default='resnet50', help='Model to use')
 parser.add_argument('--train_all', action='store_true', help="Use train and val data to train")
 args = parser.parse_args()
 

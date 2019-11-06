@@ -86,3 +86,20 @@ def evaluate_core(qf, qc, ql, gfs, gcs, gls):
     junk_index2 = np.intersect1d(query_index, camera_index)
     junk_index = np.append(junk_index1, junk_index2)
     return compute_mAP(inds, good_index, junk_index)
+
+
+def get_filenames(img_path):
+    filenames = []
+    for path, v in img_path:
+        filename = os.path.basename(path).strip()
+        filenames.append(filename)
+    return filenames
+
+
+def inference(qf, gfs, top=200):
+    qf = np.reshape(qf, (-1, 1))
+    scores = np.dot(gfs, qf)
+    scores = np.squeeze(scores, axis=1)
+    inds = np.argsort(scores)[::-1]
+    inds = inds[0:top]
+    return inds

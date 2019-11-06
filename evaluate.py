@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch
 import scipy.io
 from models.resnet import resnet50
+from models.densenet import densenet121
 from datasets import get_test_datasets
 from utils.eval_utils import extract_features, get_ids, evaluate_core
 
@@ -15,11 +16,15 @@ parser.add_argument('--batch_size', type=int, default=32, help='Batch size')
 parser.add_argument('--num_classes', type=int, default=751, help='Batch size')
 parser.add_argument('--checkpoint', type=str, default='', help='Directory to save checkpoints')
 parser.add_argument('--saved_features', type=str, default='Market_features', help='Name to save features mat')
+parser.add_argument('--model', type=str, default='resnet50', help='Model to use')
 args = parser.parse_args()
 
 test_image_datasets, test_dataloaders, dataset_sizes, class_names = get_test_datasets(args.data_dir, args.batch_size)
 num_classes = len(class_names)
-model = resnet50(num_classes=args.num_classes)
+if args.model == 'resnet50':
+    model = resnet50(num_classes=args.num_classes)
+elif args.model == 'densenet121':
+    model = densenet121(num_classes=args.num_classes)
 model.load_state_dict(torch.load(args.checkpoint))
 model.classifier.classifier = nn.Sequential()
 print(model)
