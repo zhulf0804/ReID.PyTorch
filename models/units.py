@@ -39,7 +39,7 @@ class Classifier(nn.Module):
         if relu:
             blocks.append(nn.LeakyReLU(0.1))
         if dropout > 0:
-            blocks.append(nn.Dropout(0.5))
+            blocks.append(nn.Dropout(dropout))
         blocks = nn.Sequential(*blocks)
         blocks.apply(weights_init_kaiming)
         self.blocks = blocks

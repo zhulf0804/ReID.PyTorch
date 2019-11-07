@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch
 import numpy as np
 import os
-from models.resnet import resnet50
+from models.resnet import resnet34, resnet50, resnet101
 from models.densenet import densenet121
 from datasets import get_test_datasets
 from utils.eval_utils import extract_features, get_filenames, inference
@@ -15,6 +15,8 @@ example_file = '/root/data/reid/submission_example_A.json'
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_dir', type=str, default=reid_dir, help='Dataset directory')
 parser.add_argument('--batch_size', type=int, default=32, help='Batch size')
+parser.add_argument('--stride', type=int, default=2, help='Stride for resnet50 in block4')
+parser.add_argument('--dropout', type=float, default=0.5, help='Dropout rate (1 - keep  probability)')
 parser.add_argument('--num_classes', type=int, default=4768, help='Num classes to load the raw model')
 parser.add_argument('--checkpoint', type=str, default='', help='Directory to save checkpoints')
 parser.add_argument('--model', type=str, default='resnet50', help='Model to use')
@@ -25,10 +27,14 @@ args = parser.parse_args()
 
 test_image_datasets, test_dataloaders, dataset_sizes, class_names = get_test_datasets(args.data_dir, args.batch_size)
 num_classes = len(class_names)
-if args.model == 'resnet50':
-    model = resnet50(num_classes=args.num_classes)
+if args.model == 'resnet34':
+    model = resnet34(num_classes=args.num_classes, dropout=args.dropout, stride=args.stride)
+elif args.model == 'resnet50':
+    model = resnet50(num_classes=args.num_classes, dropout=args.dropout, stride=args.stride)
+elif args.model == 'resnet101':
+    model = resnet101(num_classes=args.num_classes, dropout=args.dropout, stride=args.stride)
 elif args.model == 'densenet121':
-    model = densenet121(num_classes=args.num_classes)
+    model = densenet121(num_classes=args.num_classes, dropout=args.dropout)
 model.load_state_dict(torch.load(args.checkpoint))
 model.classifier.classifier = nn.Sequential()
 print(model)
@@ -69,4 +75,4 @@ if __name__ == '__main__':
     predict(model)
 
 
-# python predict.py --model  --checkpoint  --saved_filename
+# python predict.py --model --stride  --checkpoint  --saved_filename

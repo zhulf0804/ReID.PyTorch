@@ -4,7 +4,7 @@ import os
 import torch
 from tensorboardX import SummaryWriter
 from datasets import get_train_datasets
-from models.resnet import resnet50
+from models.resnet import resnet18, resnet34, resnet50, resnet101
 from models.densenet import densenet121
 from models.units import build_optimizer, get_scheduler, get_loss
 
@@ -14,6 +14,7 @@ parser.add_argument('--data_dir', type=str, default='/Users/zhulf/data/reid_matc
 parser.add_argument('--epoches', type=int, default=60, help='Number of traing epoches')
 parser.add_argument('--batch_size', type=int, default=32, help='Batch size')
 parser.add_argument('--init_lr', type=float, default=0.05, help='Initial learning rate')
+parser.add_argument('--stride', type=int, default=2, help='Stride for resnet50 in block4')
 parser.add_argument('--dropout', type=float, default=0.5, help='Dropout rate (1 - keep  probability)')
 parser.add_argument('--weight_decay', type=float, default=5e-4, help='Weight for l2 loss on parameters')
 parser.add_argument('--log_interval', type=int, default=1, help='Print iterval')
@@ -27,10 +28,16 @@ args = parser.parse_args()
 
 train_image_datasets, train_dataloaders, dataset_sizes, class_names = get_train_datasets(args.data_dir, args.batch_size)
 num_classes = len(class_names)
-if args.model == 'resnet50':
-    model = resnet50(num_classes=num_classes)
+if args.model == 'resnet18':
+    model = resnet18(num_classes=num_classes, dropout=args.dropout, stride=args.stride)
+elif args.model == 'resnet34':
+    model = resnet34(num_classes=num_classes, dropout=args.dropout, stride=args.stride)
+elif args.model == 'resnet50':
+    model = resnet50(num_classes=num_classes, dropout=args.dropout, stride=args.stride)
+elif args.model == 'resnet101':
+    model = resnet101(num_classes=num_classes, dropout=args.dropout, stride=args.stride)
 elif args.model == 'densenet121':
-    model = densenet121(num_classes=num_classes)
+    model = densenet121(num_classes=num_classes, dropout=args.dropout)
 criterion = get_loss()
 optimizer = build_optimizer(model, args.init_lr, args.weight_decay)
 scheduler = get_scheduler(optimizer)
