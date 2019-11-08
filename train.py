@@ -6,7 +6,8 @@ from tensorboardX import SummaryWriter
 from datasets import get_train_datasets
 from models.resnet import resnet18, resnet34, resnet50, resnet101
 from models.densenet import densenet121
-from models.units import build_optimizer, get_scheduler, get_loss
+from models.units import build_optimizer, get_scheduler
+from losses.losses import CrossEntropyLoss
 
 
 parser = argparse.ArgumentParser()
@@ -38,7 +39,7 @@ elif args.model == 'resnet101':
     model = resnet101(num_classes=num_classes, dropout=args.dropout, stride=args.stride)
 elif args.model == 'densenet121':
     model = densenet121(num_classes=num_classes, dropout=args.dropout)
-criterion = get_loss()
+criterion = CrossEntropyLoss(num_classes)
 optimizer = build_optimizer(model, args.init_lr, args.weight_decay)
 scheduler = get_scheduler(optimizer)
 
@@ -53,7 +54,7 @@ def train(model):
         phase = 'train_all'
     for epoch in range(args.epoches + 1):
         starttime = datetime.datetime.now()
-        train_loss, train_corrects = 0.0, 0.0
+
         for data in train_dataloaders[phase]:
             inputs, labels = data
             if use_gpu:
@@ -64,15 +65,25 @@ def train(model):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+        scheduler.step()
+
+        model.eval()
+        train_loss, train_corrects = 0.0, 0.0
+        for data in train_dataloaders[phase]:
+            inputs, labels = data
+            if use_gpu:
+                inputs, labels = inputs.cuda(), labels.cuda()
+                model = model.cuda()
+            with torch.no_grad():
+                outputs = model(inputs)
+            loss = criterion(outputs, labels)
             train_loss += loss.item() * args.batch_size
             pred = torch.argmax(outputs, dim=1)
             correct = float(torch.sum(pred == labels))
             train_corrects += correct
-        scheduler.step()
         avg_train_loss = train_loss / dataset_sizes[phase]
         avg_train_ac = train_corrects / dataset_sizes[phase]
 
-        model.eval()
         val_loss, val_corrects = 0.0, 0.0
         for data in train_dataloaders['val']:
             inputs, labels = data
@@ -85,10 +96,10 @@ def train(model):
             pred = torch.argmax(outputs, dim=1)
             correct = float(torch.sum(pred == labels))
             val_corrects += correct
-
-        model.train()
         avg_val_loss = val_loss / dataset_sizes['val']
         avg_val_ac = val_corrects / dataset_sizes['val']
+        model.train()
+
         endtime = datetime.datetime.now()
         total_time = (endtime - starttime).seconds
 
@@ -98,6 +109,7 @@ def train(model):
             print("="*20, "Epoch {} / {}".format(epoch, args.epoches), "="*20)
             print("train loss {:.2f}, train ac {:.2f}".format(avg_train_loss, avg_train_ac))
             print("val loss {:.2f}, val ac {:.2f}".format(avg_val_loss, avg_val_ac))
+            print("lr {:.6f}".format(optimizer.param_groups[0]['lr']))
             print("Training time is {:.2f} s".format(total_time))
             print("\n")
         if not os.path.exists(args.checkpoint_dir):

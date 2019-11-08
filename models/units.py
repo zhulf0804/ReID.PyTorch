@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.nn import init
@@ -65,7 +66,3 @@ def build_optimizer(model, lr, weight_decay):
 def get_scheduler(optimizer):
     scheduler = lr_scheduler.StepLR(optimizer, step_size=40, gamma=0.1)
     return scheduler
-
-
-def get_loss():
-    return nn.CrossEntropyLoss()
