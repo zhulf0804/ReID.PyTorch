@@ -127,7 +127,7 @@ def test_resnet18():
 
 
 if __name__ == '__main__':
-    #test_resnet50()
+    test_resnet50()
     #test_resnet101()
     #test_resnet34()
-    test_resnet18()
+    #test_resnet18()

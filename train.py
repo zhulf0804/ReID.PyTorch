@@ -2,12 +2,14 @@ import argparse
 import datetime
 import os
 import torch
+import torch.nn as nn
 from tensorboardX import SummaryWriter
 from datasets import get_train_datasets
 from models.resnet import resnet18, resnet34, resnet50, resnet101
 from models.densenet import densenet121
+from models.osnet import osnet_x1_0
 from models.units import build_optimizer, get_scheduler
-from losses.losses import CrossEntropyLoss
+from losses.losses import CrossEntropyLoss, TripletLoss
 
 
 parser = argparse.ArgumentParser()
@@ -39,6 +41,9 @@ elif args.model == 'resnet101':
     model = resnet101(num_classes=num_classes, dropout=args.dropout, stride=args.stride)
 elif args.model == 'densenet121':
     model = densenet121(num_classes=num_classes, dropout=args.dropout)
+elif args.model == 'osnet':
+    model = osnet_x1_0(num_classes)
+
 criterion = CrossEntropyLoss(num_classes)
 optimizer = build_optimizer(model, args.init_lr, args.weight_decay)
 scheduler = get_scheduler(optimizer)
@@ -123,5 +128,5 @@ if __name__ == '__main__':
 
 # nohup python -u train.py --data_dir /root/data/Market/pytorch  --model resnet50 &
 # nohup python -u train.py --data_dir /root/data/Market/pytorch --model densenet121 &
-# nohup python -u train.py --data_dir /root/data/Market/pytorch --train_all --model resnet50 &
+# nohup python -u train.py --data_dir /root/data/reid_aug --stride 1 --train_all --model resnet50 &
 # nohup python -u train.py --data_dir /root/data/Market/pytorch --train_all --model densenet121 &
