@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 from tensorboardX import SummaryWriter
 from datasets import get_train_datasets
-from models.resnet import resnet18, resnet34, resnet50, resnet101
+from models.resnet import resnet18, resnet34, resnet50, resnet101, resnet50_middle
 from models.densenet import densenet121
 from models.osnet import osnet_x1_0
 from models.units import build_optimizer, get_scheduler
@@ -29,20 +29,25 @@ parser.add_argument('--train_all', action='store_true', help="Use train and val 
 args = parser.parse_args()
 
 
+func = {'resnet18': resnet50,
+        'resnet34': resnet34,
+        'resnet50': resnet50,
+        'resnet101': resnet101,
+        'densenet121': densenet121,
+        'resnet50_middle': resnet50_middle,
+        'osnet': osnet_x1_0
+        }
+
+
 train_image_datasets, train_dataloaders, dataset_sizes, class_names = get_train_datasets(args.data_dir, args.batch_size)
 num_classes = len(class_names)
-if args.model == 'resnet18':
-    model = resnet18(num_classes=num_classes, dropout=args.dropout, stride=args.stride)
-elif args.model == 'resnet34':
-    model = resnet34(num_classes=num_classes, dropout=args.dropout, stride=args.stride)
-elif args.model == 'resnet50':
-    model = resnet50(num_classes=num_classes, dropout=args.dropout, stride=args.stride)
-elif args.model == 'resnet101':
-    model = resnet101(num_classes=num_classes, dropout=args.dropout, stride=args.stride)
-elif args.model == 'densenet121':
-    model = densenet121(num_classes=num_classes, dropout=args.dropout)
+if args.model in ['resnet18', 'resnet34', 'resnet50', 'resnet101']:
+    model = func[args.model](num_classes=num_classes, dropout=args.dropout, stride=args.stride)
+elif args.model in ['densenet121', 'resnet50_middle']:
+    model = func[args.model](num_classes=num_classes, dropout=args.dropout)
 elif args.model == 'osnet':
-    model = osnet_x1_0(num_classes)
+    model = func[args.model](num_classes)
+
 
 criterion = CrossEntropyLoss(num_classes)
 optimizer = build_optimizer(model, args.init_lr, args.weight_decay)
@@ -120,7 +125,7 @@ def train(model):
         if not os.path.exists(args.checkpoint_dir):
             os.makedirs(args.checkpoint_dir)
         if epoch % args.checkpoint_interval == 0:
-            torch.save(model.state_dict(), os.path.join(args.checkpoint_dir, "resnet50_{}.pth".format(epoch)))
+            torch.save(model.state_dict(), os.path.join(args.checkpoint_dir, "{}_{}.pth".format(args.model, epoch)))
 
 
 if __name__ == '__main__':

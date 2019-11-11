@@ -4,8 +4,9 @@ import torch.nn as nn
 import torch
 import numpy as np
 import os
-from models.resnet import resnet34, resnet50, resnet101
+from models.resnet import resnet34, resnet50, resnet101, resnet50_middle
 from models.densenet import densenet121
+from models.osnet import osnet_x1_0
 from datasets import get_test_datasets
 from utils.eval_utils import extract_features, get_filenames, inference
 
@@ -25,16 +26,24 @@ parser.add_argument('--saved_filename', type=str, help='Saved filename')
 args = parser.parse_args()
 
 
+func = {'resnet18': resnet50,
+        'resnet34': resnet34,
+        'resnet50': resnet50,
+        'resnet101': resnet101,
+        'densenet121': densenet121,
+        'resnet50_middle': resnet50_middle,
+        'osnet': osnet_x1_0
+        }
+
+
 test_image_datasets, test_dataloaders, dataset_sizes, class_names = get_test_datasets(args.data_dir, args.batch_size)
 num_classes = len(class_names)
-if args.model == 'resnet34':
-    model = resnet34(num_classes=args.num_classes, dropout=args.dropout, stride=args.stride)
-elif args.model == 'resnet50':
-    model = resnet50(num_classes=args.num_classes, dropout=args.dropout, stride=args.stride)
-elif args.model == 'resnet101':
-    model = resnet101(num_classes=args.num_classes, dropout=args.dropout, stride=args.stride)
-elif args.model == 'densenet121':
-    model = densenet121(num_classes=args.num_classes, dropout=args.dropout)
+if args.model in ['resnet18', 'resnet34', 'resnet50', 'resnet101']:
+    model = func[args.model](num_classes=args.num_classes, dropout=args.dropout, stride=args.stride)
+elif args.model in ['densenet121', 'resnet50_middle']:
+    model = func[args.model](num_classes=args.num_classes, dropout=args.dropout)
+elif args.model == 'osnet':
+    model = func[args.model](args.num_classes)
 model.load_state_dict(torch.load(args.checkpoint))
 model.classifier.classifier = nn.Sequential()
 print(model)

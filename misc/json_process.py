@@ -2,9 +2,9 @@ import json
 from collections import OrderedDict
 
 
-result_file = '/Users/zhulf/data/reid_match/reid/first_result.json'
+result_file = '/Users/zhulf/data/reid_match/results/first_result.json'
 example_file = '/Users/zhulf/data/reid_match/raw/submission_example_A.json'
-saved_file = '/Users/zhulf/data/reid_match/reid/first_result_2.json'
+saved_file = '/Users/zhulf/data/reid_match/results/first_result_2.json'
 
 with open(result_file, 'r') as f:
     results = json.loads(f.read())
