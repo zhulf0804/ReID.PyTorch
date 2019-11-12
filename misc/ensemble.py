@@ -5,7 +5,13 @@ from collections import Counter
 
 
 data_dir = '/Users/zhulf/data/reid_match/results'
-json_paths = glob.glob(os.path.join(data_dir, '*.json'))
+#json_paths = glob.glob(os.path.join(data_dir, '*.json'))
+json_paths = ['/Users/zhulf/data/reid_match/results/0.8017_ensemble.json',
+              '/Users/zhulf/data/reid_match/results/0.7777_pcb.json',
+              '/Users/zhulf/data/reid_match/results/0.7641_pcb_data_aug.json',
+              '/Users/zhulf/data/reid_match/results/0.7488_my_data_aug.json',
+              '/Users/zhulf/data/reid_match/results/0.7597_warm.json',
+              '/Users/zhulf/data/reid_match/results/0.7447_dense.json']
 
 l = []
 for json_path in json_paths:
