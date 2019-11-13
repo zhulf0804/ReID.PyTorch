@@ -21,8 +21,8 @@ def extract_features(model, dataloader):
             if i == 1:
                 inputs = fliplr(inputs)
             inputs = inputs.cuda()
-            _, outputs = model(inputs)
-            outputs_fuse += outputs.cpu()
+            outputs = model(inputs)
+            outputs_fuse += outputs[0].cpu()
             inputs = inputs.cpu()
 
         # l2 norm

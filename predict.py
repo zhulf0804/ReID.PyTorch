@@ -7,6 +7,7 @@ import os
 from models.resnet import resnet34, resnet50, resnet101, resnet50_middle
 from models.densenet import densenet121
 from models.osnet import osnet_x1_0
+from models.mgn import MGN
 from datasets import get_test_datasets
 from utils.eval_utils import extract_features, get_filenames, inference
 
@@ -18,11 +19,13 @@ parser.add_argument('--data_dir', type=str, default=reid_dir, help='Dataset dire
 parser.add_argument('--batch_size', type=int, default=32, help='Batch size')
 parser.add_argument('--stride', type=int, default=2, help='Stride for resnet50 in block4')
 parser.add_argument('--dropout', type=float, default=0.5, help='Dropout rate (1 - keep  probability)')
-parser.add_argument('--num_classes', type=int, default=4768, help='Num classes to load the raw model')
 parser.add_argument('--checkpoint', type=str, default='', help='Directory to save checkpoints')
 parser.add_argument('--model', type=str, default='resnet50', help='Model to use')
 parser.add_argument('--saved_dir', type=str, default='results', help='Saved directory name')
 parser.add_argument('--saved_filename', type=str, help='Saved filename')
+parser.add_argument('--pool', type=str, default='avg', help='pool function')
+parser.add_argument('--feats', type=int, default=256, help='number of feature maps')
+parser.add_argument('--num_classes', type=int, default=4768, help='')
 args = parser.parse_args()
 
 
@@ -32,7 +35,8 @@ func = {'resnet18': resnet50,
         'resnet101': resnet101,
         'densenet121': densenet121,
         'resnet50_middle': resnet50_middle,
-        'osnet': osnet_x1_0
+        'osnet': osnet_x1_0,
+        'mgn': MGN
         }
 
 
@@ -44,8 +48,10 @@ elif args.model in ['densenet121', 'resnet50_middle']:
     model = func[args.model](num_classes=args.num_classes, dropout=args.dropout)
 elif args.model == 'osnet':
     model = func[args.model](args.num_classes)
+elif args.model == 'mgn':
+    model = func[args.model](args)
 model.load_state_dict(torch.load(args.checkpoint))
-model.classifier.classifier = nn.Sequential()
+#model.classifier.classifier = nn.Sequential()
 print(model)
 if not os.path.exists(args.saved_dir):
     os.makedirs(args.saved_dir)

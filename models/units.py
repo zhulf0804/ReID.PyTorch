@@ -49,9 +49,9 @@ class Classifier(nn.Module):
         classifier.apply(weights_init_classifier)
         self.classifier = classifier
     def forward(self, x):
-        features = self.blocks(x)
-        x = self.classifier(features)
-        return features, x
+        x = self.blocks(x)
+        x = self.classifier(x)
+        return x
 
 
 def build_optimizer(model, lr, weight_decay):
