@@ -21,7 +21,7 @@ def extract_features(model, dataloader):
             if i == 1:
                 inputs = fliplr(inputs)
             inputs = inputs.cuda()
-            outputs = model(inputs)
+            _, outputs = model(inputs)
             outputs_fuse += outputs.cpu()
             inputs = inputs.cpu()
 

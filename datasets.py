@@ -5,15 +5,15 @@ import torch
 
 transform_train_list = [
         transforms.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0),
-        transforms.Resize((256,128), interpolation=3),
+        transforms.Resize((384,128), interpolation=3),
         transforms.Pad(10),
-        transforms.RandomCrop((256,128)),
+        transforms.RandomCrop((384,128)),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 ]
 transform_val_list = [
-        transforms.Resize(size=(256,128),interpolation=3), #Image.BICUBIC
+        transforms.Resize(size=(384,128),interpolation=3), #Image.BICUBIC
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 ]

@@ -8,6 +8,7 @@ from datasets import get_train_datasets
 from models.resnet import resnet18, resnet34, resnet50, resnet101, resnet50_middle
 from models.densenet import densenet121
 from models.osnet import osnet_x1_0
+from models.mgn import MGN
 from models.units import build_optimizer, get_scheduler
 from losses.losses import CrossEntropyLoss, TripletLoss
 
@@ -26,6 +27,9 @@ parser.add_argument('--checkpoint_interval', type=int, default=10, help='Checkpo
 parser.add_argument('--checkpoint_dir', type=str, default='checkpoints', help='Directory to save checkpoints')
 parser.add_argument('--model', type=str, default='resnet50', help='Model to use')
 parser.add_argument('--train_all', action='store_true', help="Use train and val data to train")
+parser.add_argument('--max', type=str, default='avg', help='pool function')
+parser.add_argument('--feats', type=int, default=256, help='number of feature maps')
+parser.add_argument('--num_classes', type=int, default=4768, help='')
 args = parser.parse_args()
 
 
@@ -35,7 +39,8 @@ func = {'resnet18': resnet50,
         'resnet101': resnet101,
         'densenet121': densenet121,
         'resnet50_middle': resnet50_middle,
-        'osnet': osnet_x1_0
+        'osnet': osnet_x1_0,
+        'mgn': MGN,
         }
 
 
@@ -47,6 +52,8 @@ elif args.model in ['densenet121', 'resnet50_middle']:
     model = func[args.model](num_classes=num_classes, dropout=args.dropout)
 elif args.model == 'osnet':
     model = func[args.model](num_classes)
+elif args.model == 'mgn':
+    model = func[args.model](args)
 
 
 criterion = CrossEntropyLoss(num_classes)
@@ -71,7 +78,12 @@ def train(model):
                 inputs, labels = inputs.cuda(), labels.cuda()
                 model = model.cuda()
             outputs = model(inputs)
-            loss = criterion(outputs, labels)
+            if args.model == 'mgn':
+                loss = criterion(outputs[4], labels) + criterion(outputs[5], labels) + criterion(outputs[6], labels) + \
+                       criterion(outputs[7], labels) + criterion(outputs[8], labels) + criterion(outputs[9], labels) + \
+                       criterion(outputs[10], labels) + criterion(outputs[11], labels)
+            else:
+                loss = criterion(outputs, labels)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -86,9 +98,16 @@ def train(model):
                 model = model.cuda()
             with torch.no_grad():
                 outputs = model(inputs)
-            loss = criterion(outputs, labels)
+            if args.model == 'mgn':
+                loss = criterion(outputs[4], labels) + criterion(outputs[5], labels) + criterion(outputs[6], labels) + \
+                       criterion(outputs[7], labels) + criterion(outputs[8], labels) + criterion(outputs[9], labels) + \
+                       criterion(outputs[10], labels) + criterion(outputs[11], labels)
+                pred = torch.argmax(outputs[4] + outputs[5] + outputs[6] + outputs[7] + outputs[8] + outputs[9] + outputs[10] + outputs[11], dim=1)
+            else:
+                loss = criterion(outputs, labels)
+                pred = torch.argmax(outputs, dim=1)
             train_loss += loss.item() * args.batch_size
-            pred = torch.argmax(outputs, dim=1)
+
             correct = float(torch.sum(pred == labels))
             train_corrects += correct
         avg_train_loss = train_loss / dataset_sizes[phase]
@@ -101,9 +120,15 @@ def train(model):
                 inputs, labels = inputs.cuda(), labels.cuda()
             with torch.no_grad():
                 outputs = model(inputs)
-            loss = criterion(outputs, labels)
+            if args.model == 'mgn':
+                loss = criterion(outputs[4], labels) + criterion(outputs[5], labels) + criterion(outputs[6], labels) + \
+                       criterion(outputs[7], labels) + criterion(outputs[8], labels) + criterion(outputs[9], labels) + \
+                       criterion(outputs[10], labels) + criterion(outputs[11], labels)
+                pred = torch.argmax(outputs[4] + outputs[5] + outputs[6] + outputs[7] + outputs[8] + outputs[9] + outputs[10] + outputs[11], dim=1)
+            else:
+                loss = criterion(outputs, labels)
+                pred = torch.argmax(outputs, dim=1)
             val_loss += loss.item() * args.batch_size
-            pred = torch.argmax(outputs, dim=1)
             correct = float(torch.sum(pred == labels))
             val_corrects += correct
         avg_val_loss = val_loss / dataset_sizes['val']
