@@ -8,13 +8,13 @@ from models.densenet import densenet121
 from datasets import get_test_datasets
 from utils.eval_utils import extract_features, get_ids, evaluate_core
 
-market_dir = '/root/data/Market/pytorch'
+market_dir = '/root/market'
 reid_dir = '/Users/zhulf/data/reid_match/reid'
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_dir', type=str, default=market_dir, help='Dataset directory')
 parser.add_argument('--batch_size', type=int, default=32, help='Batch size')
 parser.add_argument('--num_classes', type=int, default=751, help='Batch size')
-parser.add_argument('--checkpoint', type=str, default='', help='Directory to save checkpoints')
+parser.add_argument('--checkpoint', type=str, default='./checkpoints/resnet50_60.pth', help='Directory to save checkpoints')
 parser.add_argument('--saved_features', type=str, default='Market_features', help='Name to save features mat')
 parser.add_argument('--model', type=str, default='resnet50', help='Model to use')
 args = parser.parse_args()

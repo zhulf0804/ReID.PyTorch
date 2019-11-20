@@ -9,7 +9,6 @@ def fliplr(img):
     img_flip = img.index_select(3,inv_idx)
     return img_flip
 
-
 def extract_features(model, dataloader):
     model = model.cuda()
     features = torch.FloatTensor()
@@ -21,7 +20,7 @@ def extract_features(model, dataloader):
             if i == 1:
                 inputs = fliplr(inputs)
             inputs = inputs.cuda()
-            outputs = model(inputs)
+            outputs, _ = model(inputs)
             outputs_fuse += outputs[0].cpu()
             inputs = inputs.cpu()
 
@@ -30,6 +29,30 @@ def extract_features(model, dataloader):
         outputs_fuse = outputs_fuse / outputs_fuse_norm
         features = torch.cat([features, outputs_fuse], dim=0)
     return features.numpy()
+
+def extract_features_1(model, dataloader):
+    model = model.cuda()
+    features = torch.FloatTensor()
+    rt_labels, rt_camids = np.array([], dtype=np.int), np.array([], dtype=np.int)
+    for data in dataloader:
+        inputs, labels, camids = data
+        rt_labels = np.append(rt_labels, labels)
+        rt_camids = np.append(rt_camids, camids)
+        n, _, _, _ = inputs.size()
+        outputs_fuse = torch.zeros(n, 512, dtype=torch.float)
+        for i in range(2):
+            if i == 1:
+                inputs = fliplr(inputs)
+            inputs = inputs.cuda()
+            outputs, _ = model(inputs)
+            outputs_fuse += outputs[0].cpu()
+            inputs = inputs.cpu()
+
+        # l2 norm
+        outputs_fuse_norm = torch.norm(outputs_fuse, p=2, dim=1, keepdim=True)
+        outputs_fuse = outputs_fuse / outputs_fuse_norm
+        features = torch.cat([features, outputs_fuse], dim=0)
+    return features.numpy(), rt_labels, rt_camids
 
 
 def get_ids(paths):
@@ -62,6 +85,7 @@ def compute_mAP(inds, good_index, junk_index):
     # find good index
     mask = np.in1d(inds, good_index)
     rows_good = np.argwhere(mask == True).squeeze(1)
+    #print(rows_good)
     cmc[rows_good[0]:] = 1
     ngood = len(good_index)
     for i in range(ngood):

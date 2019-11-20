@@ -5,7 +5,7 @@ _C = CN()
 # Dasaset
 _C.DATASET = CN()
 _C.DATASET.NAME = 'market'
-_C.DATASET.DATA_DIR = '/Users/zhulf/Downloads/Market-1501-v15.09.15'
+_C.DATASET.DATA_DIR = '/root/Market-1501-v15.09.15'
 _C.DATASET.NUM_CLASS = 751
 
 
@@ -34,7 +34,7 @@ _C.TRAIN.BATCHSIZE = 32
 _C.TRAIN.EPOCHES = 60
 _C.TRAIN.LR = 0.05
 _C.TRAIN.WEIGHT_DECAY = 5e-4
-_C.TRAIN.TRIPLETLOSS = True
+_C.TRAIN.TRIPLETLOSS = False
 
 
 # Logs
