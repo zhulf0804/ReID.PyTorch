@@ -24,9 +24,13 @@ A ReID framework implemented by PyTorch.
 
     
 ## Datasets
-- [X] Market101
+- [X] Market1501
 - [X] Your own dataset.
 
+## Performance on Market1501
+| Model | Loss | ReRank | WarmUp | RE | Lr | BatchSize | Epoch | @Rank1(%) | mAP(%) | Checkpoint |
+| :---: | :---:| :---:  |:---: | :---: | :---:| :---: | :---: | :---: | :---: | :---: |
+| ResNet 50 | CE |  |  |  | 0.05 | 32 | 60 | 89.1 | 72.6 | [download](https://pan.baidu.com/s/1apUwOtnCp6JYKf73nUkxNg) |
 
 ## Market101
 + Train

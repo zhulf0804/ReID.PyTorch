@@ -21,9 +21,7 @@ class market(Dataset):
         imgs_path = glob.glob(osp.join(data_dir, '*.jpg'))
         imgs_path = sorted(imgs_path)
         ids = [parse_market1501(img_path)[1] for img_path in imgs_path if parse_market1501(img_path)[1] != -1]
-        print(len(ids))
         unique_ids = sorted(set(ids))
-        print(len(unique_ids))
         self.id2label = {}
         for ind, id in enumerate(unique_ids):
             self.id2label[id] = ind

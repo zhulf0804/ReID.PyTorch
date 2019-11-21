@@ -25,8 +25,8 @@ class resnet18(nn.Module):
         x = self.model.layer4(x)
         x = self.model.avgpool(x)
         x = x.view(x.size(0), x.size(1))
-        x = self.classifier(x)
-        return x
+        features, x = self.classifier(x)
+        return features, x
 
 
 class resnet34(nn.Module):
@@ -50,8 +50,8 @@ class resnet34(nn.Module):
         x = self.model.layer4(x)
         x = self.model.avgpool(x)
         x = x.view(x.size(0), x.size(1))
-        x = self.classifier(x)
-        return x
+        features, x = self.classifier(x)
+        return features, x
 
 
 class resnet50(nn.Module):
@@ -103,8 +103,8 @@ class resnet50_middle(nn.Module):
         x1 = self.model.avgpool(x)
         x = torch.cat((x0,x1),1)
         x = x.view(x.size(0), x.size(1))
-        x = self.classifier(x)
-        return x
+        features, x = self.classifier(x)
+        return features, x
 
 
 class resnet101(nn.Module):
@@ -128,8 +128,8 @@ class resnet101(nn.Module):
         x = self.model.layer4(x)
         x = self.model.avgpool(x)
         x = x.view(x.size(0), x.size(1))
-        x = self.classifier(x)
-        return x
+        features, x = self.classifier(x)
+        return features, x
 
 
 def test_resnet50():

@@ -17,8 +17,8 @@ def make_dataloader(cfg):
                                   num_workers=cfg.DATALOADER.NUM_WORKERS)
     else:
         train_loader = DataLoader(train_set, batch_size=cfg.TRAIN.BATCHSIZE, shuffle=True, num_workers=cfg.DATALOADER.NUM_WORKERS)
-    test_loader = DataLoader(test_set, batch_size=cfg.TRAIN.BATCHSIZE, shuffle=False, num_workers=cfg.DATALOADER.NUM_WORKERS)
-    query_loader = DataLoader(query_set, batch_size=cfg.TRAIN.BATCHSIZE, shuffle=False,
+    test_loader = DataLoader(test_set, batch_size=cfg.TEST.BATCHSIZE, shuffle=False, num_workers=cfg.DATALOADER.NUM_WORKERS)
+    query_loader = DataLoader(query_set, batch_size=cfg.TEST.BATCHSIZE, shuffle=False,
                              num_workers=cfg.DATALOADER.NUM_WORKERS)
     return train_loader, test_loader, query_loader
 

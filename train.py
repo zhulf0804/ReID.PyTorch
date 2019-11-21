@@ -1,162 +1,88 @@
-import argparse
-import datetime
 import os
 import torch
-import torch.nn as nn
+import datetime
+import argparse
+from contextlib import redirect_stdout
+from config import cfg
+from data.build import make_dataloader
+from models.models_zoo import models
+from torch.nn import CrossEntropyLoss
 from tensorboardX import SummaryWriter
-from datasets import get_train_datasets
-from models.resnet import resnet18, resnet34, resnet50, resnet101, resnet50_middle
-from models.densenet import densenet121
-from models.osnet import osnet_x1_0
-from models.mgn import MGN
 from models.units import build_optimizer, get_scheduler
-from losses.losses import CrossEntropyLoss, TripletLoss
+from evaluate import evaluate
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--data_dir', type=str, default='/Users/zhulf/data/reid_match/reid', help='Dataset directory')
-parser.add_argument('--epoches', type=int, default=60, help='Number of traing epoches')
-parser.add_argument('--batch_size', type=int, default=32, help='Batch size')
-parser.add_argument('--init_lr', type=float, default=0.05, help='Initial learning rate')
-parser.add_argument('--stride', type=int, default=2, help='Stride for resnet50 in block4')
-parser.add_argument('--dropout', type=float, default=0.5, help='Dropout rate (1 - keep  probability)')
-parser.add_argument('--weight_decay', type=float, default=5e-4, help='Weight for l2 loss on parameters')
-parser.add_argument('--log_interval', type=int, default=1, help='Print iterval')
-parser.add_argument('--log_dir', type=str, default='logs', help='Train/val loss and accuracy logs')
-parser.add_argument('--checkpoint_interval', type=int, default=10, help='Checkpoint saved interval')
-parser.add_argument('--checkpoint_dir', type=str, default='checkpoints', help='Directory to save checkpoints')
-parser.add_argument('--model', type=str, default='resnet50', help='Model to use')
-parser.add_argument('--train_all', action='store_true', help="Use train and val data to train")
-parser.add_argument('--max', type=str, default='avg', help='pool function')
-parser.add_argument('--feats', type=int, default=256, help='number of feature maps')
-parser.add_argument('--num_classes', type=int, default=4768, help='')
-args = parser.parse_args()
+def train(name, cfg, model, train_loader, test_loader, query_loader, CELoss, optimizer, scheduler):
+    if not os.path.exists(os.path.join(name, cfg.LOGS.DIR)):
+        os.makedirs(os.path.join(name, cfg.LOGS.DIR))
+    writer = SummaryWriter(os.path.join(name, cfg.LOGS.DIR))
 
-
-func = {'resnet18': resnet50,
-        'resnet34': resnet34,
-        'resnet50': resnet50,
-        'resnet101': resnet101,
-        'densenet121': densenet121,
-        'resnet50_middle': resnet50_middle,
-        'osnet': osnet_x1_0,
-        'mgn': MGN,
-        }
-
-
-train_image_datasets, train_dataloaders, dataset_sizes, class_names = get_train_datasets(args.data_dir, args.batch_size)
-num_classes = len(class_names)
-if args.model in ['resnet18', 'resnet34', 'resnet50', 'resnet101']:
-    model = func[args.model](num_classes=num_classes, dropout=args.dropout, stride=args.stride)
-elif args.model in ['densenet121', 'resnet50_middle']:
-    model = func[args.model](num_classes=num_classes, dropout=args.dropout)
-elif args.model == 'osnet':
-    model = func[args.model](num_classes)
-elif args.model == 'mgn':
-    model = func[args.model](args)
-
-
-criterion = CrossEntropyLoss(num_classes)
-optimizer = build_optimizer(model, args.init_lr, args.weight_decay)
-scheduler = get_scheduler(optimizer)
-
-use_gpu = torch.cuda.is_available()
-
-def train(model):
-    if not os.path.exists(args.log_dir):
-        os.makedirs(args.log_dir)
-    writer = SummaryWriter(args.log_dir)
-    phase = 'train'
-    if args.train_all:
-        phase = 'train_all'
-    for epoch in range(args.epoches + 1):
+    for epoch in range(cfg.TRAIN.EPOCHES):
+        model.eval()
+        train_loss, train_corrects, num = 0.0, 0.0, 0
+        for data in train_loader:
+            inputs, labels, _ = data
+            num += inputs.shape[0]
+            inputs, labels = inputs.cuda(), labels.cuda()
+            model = model.cuda()
+            with torch.no_grad():
+                _, outputs = model(inputs)
+            loss = CELoss(outputs, labels)
+            pred = torch.argmax(outputs, dim=1)
+            train_loss += loss.item() * cfg.TRAIN.BATCHSIZE
+            correct = float(torch.sum(pred == labels))
+            train_corrects += correct
+        avg_train_loss, avg_train_acc = train_loss / num, train_corrects / num
+        writer.add_scalar('loss', avg_train_loss, epoch)
+        writer.add_scalar('acc', avg_train_acc, epoch)
+        if epoch % cfg.LOGS.INTERVAL == 0:
+            print("Epoch {}".format(epoch))
+            print("Train loss: {}, train acc: {}".format(avg_train_loss, avg_train_acc))
+        if cfg.TEST.ENABLE and (epoch == 0 or epoch % cfg.CHECKPOINTS.INTERVAL == 9):
+            CMC, mAP = evaluate(model, query_loader, test_loader)
+            print("Rank@1:{}, Rank@5: {}, Rank@10: {}, mAP: {}".format(CMC[0],
+                                                                       CMC[4],
+                                                                       CMC[9],
+                                                                       mAP))
         starttime = datetime.datetime.now()
-
-        for data in train_dataloaders[phase]:
-            inputs, labels = data
-            if use_gpu:
-                inputs, labels = inputs.cuda(), labels.cuda()
-                model = model.cuda()
-            outputs = model(inputs)
-            if args.model == 'mgn':
-                loss = criterion(outputs[4], labels) + criterion(outputs[5], labels) + criterion(outputs[6], labels) + \
-                       criterion(outputs[7], labels) + criterion(outputs[8], labels) + criterion(outputs[9], labels) + \
-                       criterion(outputs[10], labels) + criterion(outputs[11], labels)
-            else:
-                loss = criterion(outputs, labels)
+        model.train()
+        for data in train_loader:
+            inputs, labels, _ = data
+            inputs, labels = inputs.cuda(), labels.cuda()
+            model = model.cuda()
+            _, outputs = model(inputs)
+            loss = CELoss(outputs, labels)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-        scheduler.step()
-
-        model.eval()
-        train_loss, train_corrects = 0.0, 0.0
-        for data in train_dataloaders[phase]:
-            inputs, labels = data
-            if use_gpu:
-                inputs, labels = inputs.cuda(), labels.cuda()
-                model = model.cuda()
-            with torch.no_grad():
-                outputs = model(inputs)
-            if args.model == 'mgn':
-                loss = criterion(outputs[4], labels) + criterion(outputs[5], labels) + criterion(outputs[6], labels) + \
-                       criterion(outputs[7], labels) + criterion(outputs[8], labels) + criterion(outputs[9], labels) + \
-                       criterion(outputs[10], labels) + criterion(outputs[11], labels)
-                pred = torch.argmax(outputs[4] + outputs[5] + outputs[6] + outputs[7] + outputs[8] + outputs[9] + outputs[10] + outputs[11], dim=1)
-            else:
-                loss = criterion(outputs, labels)
-                pred = torch.argmax(outputs, dim=1)
-            train_loss += loss.item() * args.batch_size
-
-            correct = float(torch.sum(pred == labels))
-            train_corrects += correct
-        avg_train_loss = train_loss / dataset_sizes[phase]
-        avg_train_ac = train_corrects / dataset_sizes[phase]
-
-        val_loss, val_corrects = 0.0, 0.0
-        for data in train_dataloaders['val']:
-            inputs, labels = data
-            if use_gpu:
-                inputs, labels = inputs.cuda(), labels.cuda()
-            with torch.no_grad():
-                outputs = model(inputs)
-            if args.model == 'mgn':
-                loss = criterion(outputs[4], labels) + criterion(outputs[5], labels) + criterion(outputs[6], labels) + \
-                       criterion(outputs[7], labels) + criterion(outputs[8], labels) + criterion(outputs[9], labels) + \
-                       criterion(outputs[10], labels) + criterion(outputs[11], labels)
-                pred = torch.argmax(outputs[4] + outputs[5] + outputs[6] + outputs[7] + outputs[8] + outputs[9] + outputs[10] + outputs[11], dim=1)
-            else:
-                loss = criterion(outputs, labels)
-                pred = torch.argmax(outputs, dim=1)
-            val_loss += loss.item() * args.batch_size
-            correct = float(torch.sum(pred == labels))
-            val_corrects += correct
-        avg_val_loss = val_loss / dataset_sizes['val']
-        avg_val_ac = val_corrects / dataset_sizes['val']
-        model.train()
-
         endtime = datetime.datetime.now()
         total_time = (endtime - starttime).seconds
-
-        writer.add_scalars('loss', {'train_loss': avg_train_loss, 'val_loss': avg_val_loss}, epoch)
-        writer.add_scalars('accuracy', {'train_ac': avg_train_ac, 'val_ac': avg_val_ac}, epoch)
-        if epoch % args.log_interval == 0:
-            print("="*20, "Epoch {} / {}".format(epoch, args.epoches), "="*20)
-            print("train loss {:.2f}, train ac {:.2f}".format(avg_train_loss, avg_train_ac))
-            print("val loss {:.2f}, val ac {:.2f}".format(avg_val_loss, avg_val_ac))
-            print("lr {:.6f}".format(optimizer.param_groups[0]['lr']))
-            print("Training time is {:.2f} s".format(total_time))
-            print("\n")
-        if not os.path.exists(args.checkpoint_dir):
-            os.makedirs(args.checkpoint_dir)
-        if epoch % args.checkpoint_interval == 0:
-            torch.save(model.state_dict(), os.path.join(args.checkpoint_dir, "{}_{}.pth".format(args.model, epoch)))
+        if epoch % cfg.LOGS.INTERVAL == 0:
+            print("train time {}s".format(total_time))
+        if not os.path.exists(os.path.join(name, cfg.CHECKPOINTS.DIR)):
+            os.makedirs(os.path.join(name, cfg.CHECKPOINTS.DIR))
+        if epoch == 0 or epoch % cfg.CHECKPOINTS.INTERVAL == 9:
+            torch.save(model.state_dict(), os.path.join(name, cfg.CHECKPOINTS.DIR,
+                                                        "{}_{}.pth".format(cfg.MODEL.NAME, epoch + 1)))
+        scheduler.step()
 
 
 if __name__ == '__main__':
-    train(model)
-
-# nohup python -u train.py --data_dir /root/data/Market/pytorch  --model resnet50 &
-# nohup python -u train.py --data_dir /root/data/Market/pytorch --model densenet121 &
-# nohup python -u train.py --data_dir /root/data/reid_aug --stride 1 --train_all --model resnet50 &
-# nohup python -u train.py --data_dir /root/data/Market/pytorch --train_all --model densenet121 &
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--name', type=str, default='default', help='Dataset directory')
+    parser.add_argument('--yaml', type=str, default='', help='Dataset directory')
+    args = parser.parse_args()
+    if args.yaml:
+        cfg.merge_from_file(args.yaml)
+        cfg.freeze()
+    print(cfg)
+    if not os.path.exists(args.name):
+        os.makedirs(args.name)
+    with open(os.path.join(args.name, cfg.CONFIG.SAVED_FILE), 'w') as f:
+        with redirect_stdout(f): print(cfg.dump())
+    train_loader, test_loader, query_loader = make_dataloader(cfg)
+    model = models[cfg.MODEL.NAME](cfg.DATASET.NUM_CLASS, cfg.TRAIN.DROPOUT, cfg.MODEL.RESNET_STRIDE)
+    CELoss = CrossEntropyLoss()
+    optimizer = build_optimizer(model, cfg.TRAIN.LR, cfg.TRAIN.WEIGHT_DECAY)
+    scheduler = get_scheduler(optimizer)
+    train(args.name, cfg, model, train_loader, test_loader, query_loader, CELoss, optimizer, scheduler)

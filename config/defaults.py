@@ -2,6 +2,9 @@ from yacs.config import CfgNode as CN
 
 _C = CN()
 
+_C.CONFIG = CN()
+_C.CONFIG.SAVED_FILE = 'config.yaml'
+
 # Dasaset
 _C.DATASET = CN()
 _C.DATASET.NAME = 'market'
@@ -16,6 +19,7 @@ _C.INPUT.PIXEL_STD = [0.229, 0.224, 0.225]
 _C.INPUT.SIZE_TRAIN = [256, 128]
 _C.INPUT.PADDING = 10
 _C.INPUT.RE_PROB = 0.5
+_C.INPUT.RANDOM_ERASING = False
 
 
 # Dataloader
@@ -27,6 +31,8 @@ _C.DATALOADER.NUM_INSTANCE = 16
 ## MODEL
 _C.MODEL = CN()
 _C.MODEL.NAME = 'resnet50'
+_C.MODEL.RESNET_STRIDE = 2
+
 
 # Train
 _C.TRAIN = CN()
@@ -35,6 +41,7 @@ _C.TRAIN.EPOCHES = 60
 _C.TRAIN.LR = 0.05
 _C.TRAIN.WEIGHT_DECAY = 5e-4
 _C.TRAIN.TRIPLETLOSS = False
+_C.TRAIN.DROPOUT = 0.5
 
 
 # Logs
@@ -51,4 +58,6 @@ _C.CHECKPOINTS.DIR = 'checkpoints'
 
 # Test
 _C.TEST = CN()
+_C.TEST.ENABLE = True
 _C.TEST.BATCHSIZE = 128
+_C.TEST.CHECKPOINT = './default/checkpoints/resnet50_60.pth'

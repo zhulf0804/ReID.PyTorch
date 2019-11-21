@@ -1,0 +1,4 @@
+TEST:
+  CHECKPOINT: './random_er/checkpoints/resnet50_60.pth'
+INPUT:
+  RANDOM_ERASING: True

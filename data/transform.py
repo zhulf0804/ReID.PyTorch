@@ -65,6 +65,7 @@ def data_transform(cfg, is_train=True):
         transforms.RandomCrop(cfg.INPUT.SIZE_TRAIN),
         transforms.ToTensor(),
         normalize_transform,
-        #RandomErasing(probability=cfg.INPUT.RE_PROB, mean=cfg.INPUT.PIXEL_MEAN)
     ]
+    if cfg.INPUT.RANDOM_ERASING:
+        transform_train_list.append(RandomErasing(probability=cfg.INPUT.RE_PROB, mean=cfg.INPUT.PIXEL_MEAN))
     return transforms.Compose(transform_train_list)

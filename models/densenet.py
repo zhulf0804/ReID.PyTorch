@@ -14,8 +14,8 @@ class densenet121(nn.Module):
     def forward(self, x):
         x = self.features(x)
         x = x.view(x.size(0), x.size(1))
-        x = self.classifier(x)
-        return x
+        features, x = self.classifier(x)
+        return features, x
 
 
 if __name__ == '__main__':

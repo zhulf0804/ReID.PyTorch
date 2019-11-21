@@ -4,33 +4,13 @@ import torch
 
 
 def fliplr(img):
-    '''flip horizontal'''
+    #flip horizontal
     inv_idx = torch.arange(img.size(3)-1,-1,-1).long()  # N x C x H x W
     img_flip = img.index_select(3,inv_idx)
     return img_flip
 
+
 def extract_features(model, dataloader):
-    model = model.cuda()
-    features = torch.FloatTensor()
-    for data in dataloader:
-        inputs, labels = data
-        n, _, _, _ = inputs.size()
-        outputs_fuse = torch.zeros(n, 512, dtype=torch.float)
-        for i in range(2):
-            if i == 1:
-                inputs = fliplr(inputs)
-            inputs = inputs.cuda()
-            outputs, _ = model(inputs)
-            outputs_fuse += outputs[0].cpu()
-            inputs = inputs.cpu()
-
-        # l2 norm
-        outputs_fuse_norm = torch.norm(outputs_fuse, p=2, dim=1, keepdim=True)
-        outputs_fuse = outputs_fuse / outputs_fuse_norm
-        features = torch.cat([features, outputs_fuse], dim=0)
-    return features.numpy()
-
-def extract_features_1(model, dataloader):
     model = model.cuda()
     features = torch.FloatTensor()
     rt_labels, rt_camids = np.array([], dtype=np.int), np.array([], dtype=np.int)
@@ -45,7 +25,8 @@ def extract_features_1(model, dataloader):
                 inputs = fliplr(inputs)
             inputs = inputs.cuda()
             outputs, _ = model(inputs)
-            outputs_fuse += outputs[0].cpu()
+            outputs, _ = model(inputs)
+            outputs_fuse += outputs.cpu()
             inputs = inputs.cpu()
 
         # l2 norm
@@ -53,22 +34,6 @@ def extract_features_1(model, dataloader):
         outputs_fuse = outputs_fuse / outputs_fuse_norm
         features = torch.cat([features, outputs_fuse], dim=0)
     return features.numpy(), rt_labels, rt_camids
-
-
-def get_ids(paths):
-    camera_ids = []
-    labels = []
-    for path, v in paths:
-        basename = os.path.basename(path.strip())
-        label = basename.split('_')[0]
-        if label[:2] == '-1':
-            label = -1
-        else:
-            label = int(label)
-        labels.append(label)
-        camera_id = int(basename.split('_')[1][1])
-        camera_ids.append(camera_id)
-    return np.array(camera_ids), np.array(labels)
 
 
 def compute_mAP(inds, good_index, junk_index):
@@ -110,6 +75,7 @@ def evaluate_core(qf, qc, ql, gfs, gcs, gls):
     junk_index2 = np.intersect1d(query_index, camera_index)
     junk_index = np.append(junk_index1, junk_index2)
     return compute_mAP(inds, good_index, junk_index)
+
 
 
 def get_filenames(img_path):
