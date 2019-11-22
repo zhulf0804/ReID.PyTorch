@@ -33,7 +33,6 @@ class CrossEntropyLoss(nn.Module):
         self.use_gpu = use_gpu
         self.logsoftmax = nn.LogSoftmax(dim=1)
 
-
     def forward(self, inputs, targets):
         """
         Args:
@@ -92,10 +91,3 @@ class TripletLoss(nn.Module):
         # Compute ranking hinge loss
         y = torch.ones_like(dist_an)
         return self.ranking_loss(dist_an, dist_ap, y)
-
-
-def get_l1loss(model):
-    regularization_loss = 0
-    for param in model.parameters():
-        regularization_loss += torch.sum(abs(param))
-    return 5e-4 * regularization_loss

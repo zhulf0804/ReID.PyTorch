@@ -1,4 +1,12 @@
 TEST:
-  CHECKPOINT: './random_er/checkpoints/resnet50_60.pth'
-INPUT:
-  RANDOM_ERASING: True
+  CHECKPOINT: './all/checkpoints/resnet50_60.pth'
+#INPUT:
+#  RANDOM_ERASING: True
+#OPTIM:
+#  LR: 'warmup'
+RERANK:
+  ENABLE: True
+#LOSS:
+#  SMOOTH: True
+#EVAL:
+#  DIST: 'euclid'

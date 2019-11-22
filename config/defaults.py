@@ -44,6 +44,36 @@ _C.TRAIN.TRIPLETLOSS = False
 _C.TRAIN.DROPOUT = 0.5
 
 
+# Loss
+_C.LOSS = CN()
+_C.LOSS.SMOOTH = False
+
+
+# Optimize
+_C.OPTIM = CN()
+_C.OPTIM.LR = 'steplr'
+_C.OPTIM.STEP_SIZE = 40
+_C.OPTIM.MILSTONES = [40]
+_C.OPTIM.GAMMA = 0.1
+_C.OPTIM.WARMUP_FACTOR = 1.0 / 3
+_C.OPTIM.WARMUP_ITERS = 5
+_C.OPTIM.WARMUP_METHOD = "linear"
+_C.OPTIM.LAST_EPOCH = -1
+
+
+# Evaulate
+_C.EVAL = CN()
+_C.EVAL.DIST = 'cos'
+
+
+# Re-rank
+_C.RERANK = CN()
+_C.RERANK.ENABLE = False
+_C.RERANK.K1 = 20
+_C.RERANK.K2 = 6
+_C.RERANK.LAMBDA = 0.3
+
+
 # Logs
 _C.LOGS = CN()
 _C.LOGS.INTERVAL = 1

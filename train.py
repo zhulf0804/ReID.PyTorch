@@ -6,9 +6,10 @@ from contextlib import redirect_stdout
 from config import cfg
 from data.build import make_dataloader
 from models.models_zoo import models
-from torch.nn import CrossEntropyLoss
+from losses.losses import CrossEntropyLoss
 from tensorboardX import SummaryWriter
-from models.units import build_optimizer, get_scheduler
+from utils.optim import build_optimizer
+from utils.lr import get_scheduler
 from evaluate import evaluate
 
 
@@ -36,10 +37,10 @@ def train(name, cfg, model, train_loader, test_loader, query_loader, CELoss, opt
         writer.add_scalar('loss', avg_train_loss, epoch)
         writer.add_scalar('acc', avg_train_acc, epoch)
         if epoch % cfg.LOGS.INTERVAL == 0:
-            print("Epoch {}".format(epoch))
+            print("Epoch {}, lr {}".format(epoch, optimizer.param_groups[-1]['lr']))
             print("Train loss: {}, train acc: {}".format(avg_train_loss, avg_train_acc))
         if cfg.TEST.ENABLE and (epoch == 0 or epoch % cfg.CHECKPOINTS.INTERVAL == 9):
-            CMC, mAP = evaluate(model, query_loader, test_loader)
+            CMC, mAP = evaluate(cfg, model, query_loader, test_loader)
             print("Rank@1:{}, Rank@5: {}, Rank@10: {}, mAP: {}".format(CMC[0],
                                                                        CMC[4],
                                                                        CMC[9],
@@ -74,6 +75,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     if args.yaml:
         cfg.merge_from_file(args.yaml)
+        cfg.RERANK.ENABLE = False
         cfg.freeze()
     print(cfg)
     if not os.path.exists(args.name):
@@ -82,7 +84,7 @@ if __name__ == '__main__':
         with redirect_stdout(f): print(cfg.dump())
     train_loader, test_loader, query_loader = make_dataloader(cfg)
     model = models[cfg.MODEL.NAME](cfg.DATASET.NUM_CLASS, cfg.TRAIN.DROPOUT, cfg.MODEL.RESNET_STRIDE)
-    CELoss = CrossEntropyLoss()
+    CELoss = CrossEntropyLoss(cfg.DATASET.NUM_CLASS, label_smooth=cfg.LOSS.SMOOTH)
     optimizer = build_optimizer(model, cfg.TRAIN.LR, cfg.TRAIN.WEIGHT_DECAY)
-    scheduler = get_scheduler(optimizer)
+    scheduler = get_scheduler(cfg, optimizer)
     train(args.name, cfg, model, train_loader, test_loader, query_loader, CELoss, optimizer, scheduler)
