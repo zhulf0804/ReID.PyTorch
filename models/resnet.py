@@ -74,9 +74,9 @@ class resnet50(nn.Module):
         x = self.model.layer3(x)
         x = self.model.layer4(x)
         x = self.model.avgpool(x)
-        x = x.view(x.size(0), x.size(1))
-        features, x = self.classifier(x)
-        return features, x
+        triplet_features = x.view(x.size(0), x.size(1))
+        infer_features, x = self.classifier(triplet_features)
+        return triplet_features, infer_features, x
 
 
 class resnet50_middle(nn.Module):

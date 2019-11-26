@@ -1,12 +1,15 @@
-TEST:
-  CHECKPOINT: './all/checkpoints/resnet50_60.pth'
+TRAIN:
+  BATCHSIZE: 64
+#TEST:
+#  CHECKPOINT: './base_2/checkpoints/resnet50_60.pth'
 #INPUT:
-#  RANDOM_ERASING: True
+#  RANDOM_ERASING: False
 #OPTIM:
 #  LR: 'warmup'
-RERANK:
-  ENABLE: True
+#  WARMUP_ITERS: 20
+#RERANK:
+#  ENABLE: True
 #LOSS:
 #  SMOOTH: True
 #EVAL:
-#  DIST: 'euclid'
+#  DIST: 'cos'

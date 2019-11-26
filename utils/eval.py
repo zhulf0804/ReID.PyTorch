@@ -24,8 +24,8 @@ def extract_features(model, dataloader):
             if i == 1:
                 inputs = fliplr(inputs)
             inputs = inputs.cuda()
-            outputs, _ = model(inputs)
-            outputs, _ = model(inputs)
+            _, outputs, _ = model(inputs)
+            #outputs, _ = model(inputs)
             outputs_fuse += outputs.cpu()
             inputs = inputs.cpu()
         features = torch.cat([features, outputs_fuse], dim=0)
@@ -74,20 +74,6 @@ def euclid_dist(x, y):
     dist = x_square + y_square.T - 2 * np.dot(x, y.T)
     return dist
 
-'''
-def evaluate_core(qf, qc, ql, gfs, gcs, gls):
-    qf = np.reshape(qf, (-1, 1))
-    scores = np.dot(gfs, qf)
-    scores = np.squeeze(scores, axis=1)
-    inds = np.argsort(scores)[::-1]
-    query_index = np.argwhere(gls == ql).squeeze(1)
-    camera_index = np.argwhere(gcs == qc).squeeze(1)
-    good_index = np.setdiff1d(query_index, camera_index, assume_unique=True)
-    junk_index1 = np.argwhere(gls == -1)
-    junk_index2 = np.intersect1d(query_index, camera_index)
-    junk_index = np.append(junk_index1, junk_index2)
-    return compute_mAP(inds, good_index, junk_index)
-'''
 
 def evaluate_core(scores, qc, ql, gcs, gls, ascending):
     inds = np.argsort(scores)
